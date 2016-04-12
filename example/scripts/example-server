@@ -1,0 +1,89 @@
+#!/bin/bash
+# chkconfig: 345 80 20
+
+#set -x
+
+APP_HOME=.
+JAR=example-0.0.1-SNAPSHOT.jar
+
+getpid() {
+    local i
+    for i in $(ps -ef | grep "example$" | grep -v grep | awk '{print $2}')
+    do
+        echo $i
+    done	
+}
+
+start() {
+    local pid=$(getpid)
+    if [ "$pid" != "" ]; then
+        echo " server is already running with pid=$pid"
+        return 0
+    fi
+    
+    if [ ! -e $APP_HOME/$JAR ]; then
+        echo " server is not properly installed"
+        return 1
+    fi
+    
+    echo -n "Starting  server"
+    
+    nohup java -jar $APP_HOME/$JAR --spring.config.name=example > /dev/null &
+    sleep 2
+    pid=$(getpid)
+    if [ "$pid" != "" ]; then
+        echo " succeeded"
+    else
+        echo " failed"
+    fi       
+}
+
+stop() {
+    local pid=$(getpid)
+    if [ "$pid" != "" ]; then
+        echo -n "Stopping  server"
+
+        kill $pid >/dev/null 2>&1
+        sleep 1
+        
+        pid=$(getpid)
+        if [ "$pid" == "" ]; then
+            echo " succeeded"
+        else
+            echo " failed"
+        fi       
+    else
+        echo " server is already stopped"
+    fi
+}
+
+status() {
+    local pid=$(getpid)
+    if [ "$pid" != "" ]; then
+        echo " server is currently running with pid: $pid"
+    else
+        echo " server is not running"
+    fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
+
+exit $?
